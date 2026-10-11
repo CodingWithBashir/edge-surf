@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+npm-debug.log*
+.vite/
+.env
+.env.*
+!.env.example
+coverage/
+*.zip
+release/

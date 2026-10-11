@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#04203a" />
+    <meta
+      name="description"
+      content="Surf Rush - an endless 3D surfing arcade game by CodingWithBashir. Ride the waves, dodge hazards, collect coins and outrun the Kraken."
+    />
+    <meta name="author" content="CodingWithBashir" />
+    <title>Surf Rush - by CodingWithBashir</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./src/styles/main.css" />
+  </head>
+
+  <body>
+    <!-- ============================ RENDER SURFACE ============================ -->
+    <div id="app" class="app">
+      <canvas id="game-canvas" aria-label="Surf Rush game view" role="img"></canvas>
+
+      <!-- Screen flash / vignette used for impacts, events and the Kraken chase -->
+      <div id="fx-flash" class="fx-flash" aria-hidden="true"></div>
+      <div id="fx-vignette" class="fx-vignette" aria-hidden="true"></div>
+
+      <!-- ============================== HUD ==================================== -->
+      <div id="hud" class="hud" hidden>
+        <div class="hud-top">
+          <div class="hud-cluster hud-cluster--left">
+            <div class="hud-score">
+              <span class="hud-label">Score</span>
+              <span id="hud-score" class="hud-score-value">0</span>
+              <span id="hud-multiplier" class="hud-multiplier" hidden>&times;2</span>
+            </div>
+            <div class="hud-subline">
+              <span class="hud-best">Best <b id="hud-best">0</b></span>
+            </div>
+          </div>
+
+          <div class="hud-cluster hud-cluster--center">
+            <div id="hud-objective" class="hud-objective">
+              <span id="hud-mode-name" class="hud-mode-name">Endless Surf</span>
+              <div class="hud-objective-bar"><div id="hud-objective-fill" class="hud-objective-fill"></div></div>
+              <span id="hud-objective-text" class="hud-objective-text">0 m</span>
+            </div>
+          </div>
+
+          <div class="hud-cluster hud-cluster--right">
+            <div class="hud-chip" id="hud-coins-chip">
+              <span class="coin-dot" aria-hidden="true"></span>
+              <span id="hud-coins">0</span>
+            </div>
+            <div class="hud-chip" id="hud-distance-chip">
+              <span class="hud-chip-label">Dist</span>
+              <span id="hud-distance">0 m</span>
+            </div>
+            <div class="hud-speed">
+              <span class="hud-chip-label">Speed</span>
+              <div class="hud-speed-bar"><div id="hud-speed-fill" class="hud-speed-fill"></div></div>
+            </div>
+            <button id="btn-hud-pause" class="icon-btn" type="button" title="Pause (P / Esc)" aria-label="Pause">
+              <span class="icon-pause" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+
+        <div id="hud-lives" class="hud-lives" aria-label="Lives"></div>
+        <div id="hud-powerups" class="hud-powerups" aria-label="Active power-ups"></div>
+        <div id="hud-toasts" class="hud-toasts" aria-live="polite"></div>
+        <div id="hud-banner" class="hud-banner" aria-live="polite"></div>
+        <div id="hud-fps" class="hud-fps" hidden>60 FPS</div>
+
+        <!-- Touch controls: only displayed on touch-capable devices -->
+        <div id="touch-controls" class="touch-controls" hidden>
+          <button class="touch-btn touch-btn--move" id="touch-left" type="button" aria-label="Move left">&#9664;</button>
+          <button class="touch-btn touch-btn--move" id="touch-right" type="button" aria-label="Move right">&#9654;</button>
+          <button class="touch-btn touch-btn--action" id="touch-down" type="button" aria-label="Duck">&#9660;</button>
+          <button class="touch-btn touch-btn--action touch-btn--jump" id="touch-up" type="button" aria-label="Jump">&#9650;</button>
+        </div>
+      </div>
+
+      <!-- ========================== COUNTDOWN OVERLAY ========================== -->
+      <div id="countdown" class="countdown" hidden>
+        <div id="countdown-text" class="countdown-text">3</div>
+        <div class="countdown-hint">Get ready to drop in&hellip;</div>
+      </div>
+
+      <!-- ============================ SCREENS ================================== -->
+
+      <!-- 1. Loading ---------------------------------------------------------- -->
+      <section id="screen-loading" class="screen screen--loading is-active">
+        <div class="brand">
+          <div class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 120 120" width="120" height="120" role="presentation">
+              <defs>
+                <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#5eead4" />
+                  <stop offset="100%" stop-color="#2563eb" />
+                </linearGradient>
+              </defs>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="url(#lg1)" stroke-width="4" opacity=".55" />
+              <path d="M18 74c14-10 26 8 40-2s26 8 44-6" fill="none" stroke="#5eead4" stroke-width="6" stroke-linecap="round" />
+              <path d="M18 90c14-10 26 8 40-2s26 8 44-6" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" opacity=".6" />
+              <path d="M60 22c8 8 10 16 6 22-3 5-9 6-12 3-3-3-2-9 2-13" fill="#ffd166" />
+              <path d="M58 46c-10 4-18 12-22 22 12 4 24 0 30-8 3-4 3-9-8-14z" fill="url(#lg1)" />
+            </svg>
+          </div>
+          <h1 class="brand-title">Surf&nbsp;Rush</h1>
+          <p class="brand-sub">by CodingWithBashir</p>
+        </div>
+        <div class="loader">
+          <div class="loader-bar"><div id="loader-fill" class="loader-fill"></div></div>
+          <p id="loader-status" class="loader-status">Waxing the board&hellip;</p>
+        </div>
+      </section>
+
+      <!-- 2. Main menu --------------------------------------------------------- -->
+      <section id="screen-menu" class="screen screen--menu">
+        <div class="menu-wrap">
+          <header class="menu-header">
+            <h1 class="brand-title brand-title--lg">Surf&nbsp;Rush</h1>
+            <p class="brand-sub">by CodingWithBashir</p>
+          </header>
+          <nav class="menu-nav" aria-label="Main menu">
+            <button class="btn btn--primary" data-action="play" type="button">
+              <span class="btn-glyph" aria-hidden="true">&#9654;</span> Play
+            </button>
+            <button class="btn" data-action="characters" type="button">
+              <span class="btn-glyph" aria-hidden="true">&#9673;</span> Characters
+            </button>
+            <button class="btn" data-action="shop" type="button">
+              <span class="btn-glyph" aria-hidden="true">&#9733;</span> Board Shop
+            </button>
+            <button class="btn" data-action="leaderboard" type="button">
+              <span class="btn-glyph" aria-hidden="true">&#9776;</span> Local Records
+            </button>
+            <button class="btn" data-action="achievements" type="button">
+              <span class="btn-glyph" aria-hidden="true">&#9733;</span> Achievements
+            </button>
+            <button class="btn" data-action="settings" type="button">
+              <span class="btn-glyph" aria-hidden="true">&#9881;</span> Settings
+            </button>
+            <button class="btn" data-action="howto" type="button">
+              <span class="btn-glyph" aria-hidden="true">?</span> How to Play
+            </button>
+          </nav>
+          <footer class="menu-footer">
+            <div class="stat-strip">
+              <div class="stat"><span class="stat-label">Best</span><b id="menu-best">0</b></div>
+              <div class="stat"><span class="stat-label">Coins</span><b id="menu-coins">0</b></div>
+              <div class="stat"><span class="stat-label">Runs</span><b id="menu-runs">0</b></div>
+            </div>
+            <p class="tiny-print">Keyboard, mouse &amp; touch supported &middot; All assets procedurally generated</p>
+          </footer>
+        </div>
+      </section>
+
+      <!-- 4. Mode selection ---------------------------------------------------- -->
+      <section id="screen-modes" class="screen screen--panel">
+        <div class="panel">
+          <header class="panel-head">
+            <button class="icon-btn icon-btn--back" data-action="back" type="button" aria-label="Back">&#8592;</button>
+            <h2>Choose your ride</h2>
+          </header>
+          <div id="mode-list" class="mode-list"><!-- populated by JS --></div>
+        </div>
+      </section>
+
+      <!-- 3. Character selection ----------------------------------------------- -->
+      <section id="screen-characters" class="screen screen--panel">
+        <div class="panel">
+          <header class="panel-head">
+            <button class="icon-btn icon-btn--back" data-action="back" type="button" aria-label="Back">&#8592;</button>
+            <h2>Surfers</h2>
+          </header>
+          <div id="character-list" class="card-grid"><!-- populated by JS --></div>
+        </div>
+      </section>
+
+      <!-- 13. Cosmetic shop ---------------------------------------------------- -->
+      <section id="screen-shop" class="screen screen--panel">
+        <div class="panel">
+          <header class="panel-head">
+            <button class="icon-btn icon-btn--back" data-action="back" type="button" aria-label="Back">&#8592;</button>
+            <h2>Board Shop</h2>
+            <div class="wallet"><span class="coin-dot" aria-hidden="true"></span><b id="shop-coins">0</b></div>
+          </header>
+          <div id="board-list" class="card-grid"><!-- populated by JS --></div>
+        </div>
+      </section>
+
+      <!-- 11. Achievements ----------------------------------------------------- -->
+      <section id="screen-achievements" class="screen screen--panel">
+        <div class="panel">
+          <header class="panel-head">
+            <button class="icon-btn icon-btn--back" data-action="back" type="button" aria-label="Back">&#8592;</button>
+            <h2>Achievements</h2>
+            <div class="wallet"><b id="ach-progress">0 / 0</b></div>
+          </header>
+          <div id="achievement-list" class="ach-list"><!-- populated by JS --></div>
+        </div>
+      </section>
+
+      <!-- 12. Local leaderboard ------------------------------------------------ -->
+      <section id="screen-leaderboard" class="screen screen--panel">
+        <div class="panel">
+          <header class="panel-head">
+            <button class="icon-btn icon-btn--back" data-action="back" type="button" aria-label="Back">&#8592;</button>
+            <h2>Local Records</h2>
+            <div class="mode-tabs" id="lb-tabs"><!-- populated by JS --></div>
+          </header>
+          <div id="leaderboard-body" class="lb-body"><!-- populated by JS --></div>
+          <p class="tiny-print">
+            Records are stored on this device only (browser local storage). Surf Rush ships without a
+            server, so no online leaderboard is advertised.
+          </p>
+        </div>
+      </section>
+
+      <!-- 7 & 14. Settings + accessibility ------------------------------------- -->
+      <section id="screen-settings" class="screen screen--panel">
+        <div class="panel">
+          <header class="panel-head">
+            <button class="icon-btn icon-btn--back" data-action="back" type="button" aria-label="Back">&#8592;</button>
+            <h2>Settings</h2>
+          </header>
+
+          <div class="settings-scroll">
+            <h3 class="settings-group-title">Audio</h3>
+            <div class="setting">
+              <label for="set-master">Master volume</label>
+              <input id="set-master" type="range" min="0" max="100" step="1" data-setting="master" />
+              <output id="out-master">70%</output>
+            </div>
+            <div class="setting">
+              <label for="set-music">Music</label>
+              <input id="set-music" type="range" min="0" max="100" step="1" data-setting="music" />
+              <output id="out-music">55%</output>
+            </div>
+            <div class="setting">
+              <label for="set-sfx">Sound effects</label>
+              <input id="set-sfx" type="range" min="0" max="100" step="1" data-setting="sfx" />
+              <output id="out-sfx">80%</output>
+            </div>
+            <div class="setting setting--toggle">
+              <label for="set-mute">Mute everything</label>
+              <input id="set-mute" type="checkbox" data-setting="muted" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+
+            <h3 class="settings-group-title">Graphics</h3>
+            <div class="setting">
+              <label for="set-quality">Quality</label>
+              <select id="set-quality" data-setting="quality">
+                <option value="auto">Adaptive (recommended)</option>
+                <option value="low">Low &mdash; best battery</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="setting setting--toggle">
+              <label for="set-shadows">Shadows &amp; reflections</label>
+              <input id="set-shadows" type="checkbox" data-setting="shadows" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+            <div class="setting setting--toggle">
+              <label for="set-fps">Show FPS meter</label>
+              <input id="set-fps" type="checkbox" data-setting="showFps" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+
+            <h3 class="settings-group-title">Accessibility</h3>
+            <div class="setting setting--toggle">
+              <label for="set-reduce-motion">Reduce motion (no shake / flashes)</label>
+              <input id="set-reduce-motion" type="checkbox" data-setting="reduceMotion" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+            <div class="setting setting--toggle">
+              <label for="set-high-contrast">High contrast HUD</label>
+              <input id="set-high-contrast" type="checkbox" data-setting="highContrast" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+            <div class="setting setting--toggle">
+              <label for="set-large-text">Larger text</label>
+              <input id="set-large-text" type="checkbox" data-setting="largeText" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+            <div class="setting setting--toggle">
+              <label for="set-colorblind">Colour-blind assist (shaped pickups)</label>
+              <input id="set-colorblind" type="checkbox" data-setting="colorAssist" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+            <div class="setting setting--toggle">
+              <label for="set-lane-guides">Lane guide lines</label>
+              <input id="set-lane-guides" type="checkbox" data-setting="laneGuides" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+
+            <h3 class="settings-group-title">Gameplay</h3>
+            <div class="setting setting--toggle">
+              <label for="set-touch-controls">Always show touch buttons</label>
+              <input id="set-touch-controls" type="checkbox" data-setting="forceTouch" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+            <div class="setting setting--toggle">
+              <label for="set-invert-swipe">Invert horizontal swipe</label>
+              <input id="set-invert-swipe" type="checkbox" data-setting="invertSwipe" />
+              <span class="switch" aria-hidden="true"></span>
+            </div>
+
+            <h3 class="settings-group-title">Data</h3>
+            <div class="setting setting--buttons">
+              <button class="btn btn--danger btn--sm" id="btn-reset-progress" type="button">Reset progress</button>
+              <span class="tiny-print">Erases records, coins and unlocks on this device.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. Instructions ------------------------------------------------------ -->
+      <section id="screen-howto" class="screen screen--panel">
+        <div class="panel">
+          <header class="panel-head">
+            <button class="icon-btn icon-btn--back" data-action="back" type="button" aria-label="Back">&#8592;</button>
+            <h2>How to Play</h2>
+          </header>
+          <div class="settings-scroll">
+            <div class="howto-grid">
+              <div class="howto-card">
+                <h3>Keyboard</h3>
+                <ul class="keylist">
+                  <li><kbd>&larr;</kbd> / <kbd>A</kbd> <span>Move left one lane</span></li>
+                  <li><kbd>&rarr;</kbd> / <kbd>D</kbd> <span>Move right one lane</span></li>
+                  <li><kbd>Space</kbd> / <kbd>&uarr;</kbd> / <kbd>W</kbd> <span>Jump</span></li>
+                  <li><kbd>&darr;</kbd> / <kbd>S</kbd> <span>Duck under hazards (hold)</span></li>
+                  <li><kbd>P</kbd> / <kbd>Esc</kbd> <span>Pause</span></li>
+                  <li><kbd>Enter</kbd> <span>Confirm / restart</span></li>
+                </ul>
+              </div>
+              <div class="howto-card">
+                <h3>Touch</h3>
+                <ul class="keylist">
+                  <li><span class="swipe">Swipe &larr; &rarr;</span> <span>Change lane</span></li>
+                  <li><span class="swipe">Swipe &uarr;</span> <span>Jump</span></li>
+                  <li><span class="swipe">Swipe &darr;</span> <span>Duck</span></li>
+                  <li><span class="swipe">Tap on-screen buttons</span> <span>Same actions</span></li>
+                  <li><span class="swipe">Pause icon</span> <span>Pause menu</span></li>
+                </ul>
+              </div>
+            </div>
+
+            <h3 class="settings-group-title">Hazards</h3>
+            <div id="hazard-legend" class="legend-grid"><!-- populated by JS --></div>
+
+            <h3 class="settings-group-title">Pickups &amp; Power-ups</h3>
+            <div id="powerup-legend" class="legend-grid"><!-- populated by JS --></div>
+
+            <h3 class="settings-group-title">Tips</h3>
+            <ul class="tips">
+              <li>Low hazards (coral, logs, whitewater) can be <b>jumped</b>. Tall hazards (rocks, buoys) must be <b>steered around</b>.</li>
+              <li>Overhead driftwood has to be <b>ducked</b> &mdash; hold Down as you pass beneath it.</li>
+              <li>Coins build your combo; a clean run keeps the score multiplier climbing.</li>
+              <li>Hitting a hazard costs a life. A <b>Shield</b> absorbs exactly one hit.</li>
+              <li>Every 1,200&nbsp;m the Kraken wakes up. Outrun it &mdash; or lose a life to its tentacles.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Pause ------------------------------------------------------------- -->
+      <section id="screen-pause" class="screen screen--modal">
+        <div class="modal">
+          <h2>Paused</h2>
+          <div class="pause-stats">
+            <div><span>Score</span><b id="pause-score">0</b></div>
+            <div><span>Distance</span><b id="pause-distance">0 m</b></div>
+            <div><span>Coins</span><b id="pause-coins">0</b></div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn--primary" data-action="resume" type="button">Resume</button>
+            <button class="btn" data-action="restart" type="button">Restart</button>
+            <button class="btn" data-action="settings" type="button">Settings</button>
+            <button class="btn btn--ghost" data-action="quit" type="button">Quit to menu</button>
+          </div>
+          <div class="pause-audio">
+            <label for="set-master-pause">Volume</label>
+            <input id="set-master-pause" type="range" min="0" max="100" step="1" data-setting="master" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. Game over --------------------------------------------------------- -->
+      <section id="screen-gameover" class="screen screen--modal">
+        <div class="modal modal--wide">
+          <div id="gameover-flavour" class="go-flavour">Wipeout!</div>
+          <h2 id="gameover-title" class="go-title">Run Over</h2>
+          <div class="go-score">
+            <span class="hud-label">Score</span>
+            <b id="gameover-score">0</b>
+            <span id="gameover-best" class="go-best">Best 0</span>
+          </div>
+          <div id="gameover-newrecord" class="go-newrecord" hidden>New personal record!</div>
+          <div class="go-grid">
+            <div><span>Distance</span><b id="go-distance">0 m</b></div>
+            <div><span>Coins</span><b id="go-coins">0</b></div>
+            <div><span>Top speed</span><b id="go-speed">0</b></div>
+            <div><span>Obstacles passed</span><b id="go-obstacles">0</b></div>
+          </div>
+          <div id="gameover-unlocks" class="go-unlocks" hidden></div>
+          <div class="modal-actions">
+            <button class="btn btn--primary" data-action="retry" type="button">Surf again <kbd>Enter</kbd></button>
+            <button class="btn" data-action="results" type="button">Full results</button>
+            <button class="btn btn--ghost" data-action="quit" type="button">Main menu</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10. Results & statistics --------------------------------------------- -->
+      <section id="screen-results" class="screen screen--panel">
+        <div class="panel">
+          <header class="panel-head">
+            <button class="icon-btn icon-btn--back" data-action="back" type="button" aria-label="Back">&#8592;</button>
+            <h2>Run Results</h2>
+          </header>
+          <div class="settings-scroll">
+            <div id="results-body" class="results-body"><!-- populated by JS --></div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn--primary" data-action="retry" type="button">Surf again</button>
+            <button class="btn btn--ghost" data-action="quit" type="button">Main menu</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fatal / unsupported -------------------------------------------------- -->
+      <section id="screen-error" class="screen screen--modal">
+        <div class="modal">
+          <h2 id="error-title">Surf Rush can&rsquo;t start</h2>
+          <p id="error-message" class="error-message"></p>
+          <p class="tiny-print">
+            Surf Rush needs WebGL. Try a recent version of Microsoft Edge, Google Chrome or Firefox with
+            hardware acceleration enabled.
+          </p>
+          <div class="modal-actions">
+            <button class="btn" id="btn-error-reload" type="button">Reload</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <noscript>
+      <div class="noscript">
+        <h1>Surf Rush</h1>
+        <p>This game requires JavaScript and WebGL. Please enable JavaScript and try again.</p>
+      </div>
+    </noscript>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

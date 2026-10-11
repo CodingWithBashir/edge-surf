@@ -1,0 +1,304 @@
+/* =====================================================================
+   Surf Rush — base layer: design tokens, reset, canvas, screen stack
+   ===================================================================== */
+
+:root {
+  /* Ocean palette */
+  --ocean-950: #02121f;
+  --ocean-900: #04203a;
+  --ocean-800: #062b4d;
+  --ocean-700: #0a3a66;
+  --ocean-600: #10496f;
+  --teal-300: #7ff3e0;
+  --teal-400: #2ee6c5;
+  --teal-500: #14b8a6;
+  --cyan-400: #38bdf8;
+  --blue-500: #3b82f6;
+  --gold-300: #ffe29a;
+  --gold-400: #ffd166;
+  --gold-500: #f2a63b;
+  --coral-400: #ff8a7a;
+  --coral-500: #ff6b6b;
+  --violet-500: #8b5cf6;
+
+  --ink: #eaf6ff;
+  --ink-dim: #a9c6dc;
+  --ink-faint: #6f92ad;
+
+  --glass: rgba(8, 34, 58, 0.72);
+  --glass-strong: rgba(5, 24, 42, 0.92);
+  --glass-soft: rgba(255, 255, 255, 0.06);
+  --stroke: rgba(126, 214, 255, 0.22);
+  --stroke-strong: rgba(126, 214, 255, 0.45);
+
+  --shadow-1: 0 4px 18px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 18px 50px rgba(0, 0, 0, 0.5);
+  --glow-teal: 0 0 24px rgba(46, 230, 197, 0.45);
+  --glow-gold: 0 0 26px rgba(255, 209, 102, 0.4);
+
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 24px;
+
+  --font: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Cascadia Mono', 'Consolas', 'SFMono-Regular', ui-monospace, monospace;
+
+  --ui-scale: 1;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* Larger-text accessibility option scales every rem-based size. */
+html[data-large-text='true'] {
+  --ui-scale: 1.14;
+  font-size: calc(16px * var(--ui-scale));
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ocean-950);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(16px * var(--ui-scale));
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  outline: none;
+}
+
+/* --------------------------- full-screen FX -------------------------- */
+
+.fx-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: #fff;
+  mix-blend-mode: screen;
+  transition: opacity 90ms linear;
+  z-index: 30;
+}
+
+.fx-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 29;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 42%, rgba(70, 0, 30, 0.85) 100%);
+  transition: opacity 240ms ease;
+}
+
+/* ---------------------------- screen stack --------------------------- */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: calc(20px + var(--safe-top)) calc(20px + var(--safe-right)) calc(20px + var(--safe-bottom))
+    calc(20px + var(--safe-left));
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+
+.screen.is-mounted {
+  display: flex;
+}
+
+.screen.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.screen::before {
+  /* Scrim so the 3D scene stays visible but the UI remains readable. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 100% at 50% 0%, rgba(4, 32, 58, 0.55) 0%, rgba(2, 14, 26, 0.86) 70%);
+  backdrop-filter: blur(3px);
+}
+
+.screen--loading::before {
+  background: linear-gradient(170deg, #04203a 0%, #02121f 100%);
+  backdrop-filter: none;
+}
+
+.screen--modal::before {
+  background: rgba(2, 14, 26, 0.68);
+  backdrop-filter: blur(6px);
+}
+
+.screen--loading {
+  flex-direction: column;
+  gap: 34px;
+}
+
+/* ------------------------------ brand -------------------------------- */
+
+.brand {
+  text-align: center;
+}
+
+.brand-logo {
+  animation: bob 3.4s ease-in-out infinite;
+  filter: drop-shadow(0 8px 24px rgba(46, 230, 197, 0.35));
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(6px) rotate(2deg);
+  }
+}
+
+.brand-title {
+  margin: 14px 0 2px;
+  font-size: clamp(2.6rem, 9vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 0.98;
+  background: linear-gradient(180deg, #ffffff 0%, var(--teal-300) 55%, var(--cyan-400) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 40px rgba(46, 230, 197, 0.25);
+}
+
+.brand-title--lg {
+  font-size: clamp(3rem, 11vw, 5.6rem);
+}
+
+.brand-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ------------------------------ loader -------------------------------- */
+
+.loader {
+  width: min(360px, 78vw);
+  text-align: center;
+}
+
+.loader-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.loader-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--teal-400), var(--cyan-400) 60%, var(--gold-400));
+  box-shadow: var(--glow-teal);
+  transition: width 260ms ease;
+}
+
+.loader-status {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+}
+
+/* -------------------------- reduced motion ---------------------------- */
+
+html[data-reduce-motion='true'] *,
+html[data-reduce-motion='true'] *::before,
+html[data-reduce-motion='true'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 90ms !important;
+}
+
+/* ------------------------------ noscript ------------------------------- */
+
+.noscript {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  background: var(--ocean-900);
+  color: var(--ink);
+  text-align: center;
+  padding: 24px;
+}
+
+/* ------------------------- scrollbar (panels) -------------------------- */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(126, 214, 255, 0.28);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(126, 214, 255, 0.45);
+}

@@ -1,0 +1,11 @@
+/* =====================================================================
+   Surf Rush — main stylesheet entry
+   Loads the three layers of the interface:
+     • base.css   — tokens, resets, canvas, full-screen effects
+     • ui.css     — menus, panels, buttons, cards, forms
+     • hud.css    — in-game heads-up display and touch controls
+   ===================================================================== */
+
+@import url('./base.css');
+@import url('./ui.css');
+@import url('./hud.css');
