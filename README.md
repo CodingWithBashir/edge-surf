@@ -401,8 +401,9 @@ Target is 60 FPS. Techniques in use:
 - Instanced or merged geometry for hazards, collectibles and scenery.
 - Object pooling throughout — no per-frame allocation.
 - Shadow maps only on `high` quality; cheap shadow decals below that.
-- Adaptive quality: if the rolling frame time is bad for a sustained period, the
-  renderer drops pixel ratio, then shadow quality, then wave detail.
+- Adaptive quality: on `auto`, a smoothed FPS estimate drops a quality level
+  after three slow seconds and climbs back after twelve good ones. Each level
+  trades pixel ratio, shadow quality and wave tessellation.
 
 ---
 
@@ -418,9 +419,11 @@ Honest list of what this build does *not* do.
   import.
 - **No gamepad support.** Keyboard and touch only.
 - **No screenshots or replay sharing.** The results screen is text only.
-- **Adaptive quality is one-way.** It steps down when the frame rate suffers but
-  does not step back up within a run, to avoid oscillation. Changing the setting
-  manually (or restarting) resets it.
+- **Adaptive quality is deliberately sluggish.** In `auto` mode it waits for
+  three consecutive slow seconds before dropping a level, and twelve
+  consecutive good seconds before climbing back. That avoids visible
+  oscillation, but it means a brief stutter will not trigger a change in either
+  direction —and the HUD toast does not announce upgrades, only downgrades.
 - **Safari and low-end mobile GPUs** fall back to `medium` or `low` quality,
   which means smaller waves and no real-time shadows. The game stays playable.
 - **ES modules need a server.** Opening `index.html` from the file system will
